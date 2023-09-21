@@ -15,6 +15,9 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(v2x_if_ros_msg)
 
+add_library(${PROJECT_NAME} INTERFACE)
+add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
+
 add_subdirectory(its_container_v2)
 add_subdirectory(cam_v2)
 add_subdirectory(mcm_dmove)
@@ -53,3 +56,41 @@ list(APPEND CMAKE_PREFIX_PATH "$ENV{CMAKE_PREFIX_PATH}")
 message("CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
 
 set(PROJECT_INCLUDE_PATH "${PROJECT_SOURCE_DIR}/build/devel/include")
+
+
+
+install(TARGETS ${PROJECT_NAME}
+        EXPORT ${PROJECT_NAME}Targets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+
+include(CMakePackageConfigHelpers)
+
+configure_package_config_file(
+  "${PROJECT_SOURCE_DIR}/cmake/LibraryConfig.cmake.in"
+  "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+  INSTALL_DESTINATION
+  ${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME}/cmake
+)
+
+install(EXPORT ${PROJECT_NAME}Targets
+    COMPONENT ${PROJECT_NAME}
+    FILE ${PROJECT_NAME}Targets.cmake
+    NAMESPACE ${PROJECT_NAME}::
+    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME}/cmake
+)
+
+install(FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+              # "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME}/cmake
+        COMPONENT ${PROJECT_NAME}
+)
+
+install(
+        DIRECTORY ${PROJECT_SOURCE_DIR}/build/devel/include
+        DESTINATION .
+)
+
