@@ -1,22 +1,40 @@
 ARG PROJECT
 
+
+
+
 FROM ros:noetic-ros-core-focal AS v2x_if_ros_msg_requirements_base
 
 ARG PROJECT
 ARG REQUIREMENTS_FILE="requirements.${PROJECT}.ubuntu20.04.system"
 
+# Step 0: Allow insecure repos temporarily
+RUN echo 'Acquire::AllowInsecureRepositories "true";' > /etc/apt/apt.conf.d/99insecure && \
+    echo 'Acquire::Check-Valid-Until "false";' >> /etc/apt/apt.conf.d/99insecure
 
+# Step 1: Install curl, gnupg2, etc.
+RUN apt-get update && apt-get install -y --no-install-recommends curl gnupg2 ca-certificates
+
+# Step 2: Replace the expired key (used by ROS repo already present in base image)
+RUN curl -fsSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key | \
+    gpg --dearmor --no-tty --batch --yes -o /usr/share/keyrings/ros1-latest-archive-keyring.gpg
+
+
+# Step 3: Remove insecure workaround
+RUN rm /etc/apt/apt.conf.d/99insecure
+
+# Step 4: Setup build env
 RUN mkdir -p /tmp/${PROJECT}
 WORKDIR /tmp/${PROJECT}
-copy files/${REQUIREMENTS_FILE} /tmp/${PROJECT}
-
-
+COPY files/${REQUIREMENTS_FILE} /tmp/${PROJECT}
 RUN apt-get update && \
     xargs apt-get install --no-install-recommends -y < ${REQUIREMENTS_FILE} && \
     rm -rf /var/lib/apt/lists/*
 
+# Copy code
 COPY ${PROJECT} /tmp/${PROJECT}/${PROJECT}
-copy files/catkin_build.sh /tmp/${PROJECT}/${PROJECT}
+COPY files/catkin_build.sh /tmp/${PROJECT}/${PROJECT}
+
 
 FROM v2x_if_ros_msg_requirements_base AS v2x_if_ros_msg_builder
 ARG PROJECT
